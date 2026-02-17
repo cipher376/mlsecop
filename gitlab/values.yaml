@@ -1,0 +1,47 @@
+global:
+  hosts:
+    domain: mlsecops.local        # Replace with your domain
+    https: true
+  ingress:
+    class: cilium # CRITICAL: Tells GitLab to use Cilium's Envoy-based ingress
+    configureCertmanager: false
+    tls:
+      enabled: false
+  postgresql:
+    manage: true
+  redis:
+    manage: true
+
+gitlab:
+  webservice:
+    replicaCount: 2
+    nodeSelector:
+      workload: ml-build
+  sidekiq:
+    replicaCount: 1
+    nodeSelector:
+      workload: ml-build
+  gitaly:
+    persistence:
+      size: 50Gi
+
+postgresql:
+  primary:
+    persistence:
+      size: 20Gi
+
+redis:
+  master:
+    persistence:
+      size: 5Gi
+
+minio:
+  persistence:
+    size: 20Gi
+
+# Disable GitLab Runner in the chart (we'll configure it separately)
+gitlab-runner:
+  install: false
+
+nginx-ingress:
+  enabled: false # We use Cilium instead
