@@ -1,0 +1,54 @@
+global:
+  security:
+    allowInsecureImages: true # This tells the Bitnami chart it's okay to use Quay
+
+image:
+  repository: cgr.dev/chainguard/minio
+  tag: latest
+clientImage:
+  repository: cgr.dev/chainguard/minio
+  tag: latest
+
+auth:
+  rootUser: admin
+  rootPassword: mlsecops-minio-pass
+
+persistence:
+  size: 20Gi
+  storageClass: local-path
+
+nodeSelector:
+  workload: build-jobs
+
+# This is the critical fix for the sidecar error
+sidecars: [] 
+
+service:
+  ports:
+    console: 9001
+
+# Automatically create your GitLab buckets
+provisioning:
+  enabled: true
+  buckets:
+    - name: registry
+    - name: lfs
+    - name: artifacts
+    - name: uploads
+    - name: packages
+    - name: terraform-state
+    - name: ci-cache
+
+# handle security
+# Add this under your deployment or pod specs
+podSecurityContext:
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL

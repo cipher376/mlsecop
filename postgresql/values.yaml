@@ -1,0 +1,55 @@
+## PostgreSQL configuration for Master Node pinning
+## Optimized for MLSecOps using local images and storage
+
+image:
+  # Using the 'localhost/' prefix bypasses external registry 403 errors
+  repository: bitnami/postgresql
+  tag: latest
+  pullPolicy: IfNotPresent
+
+## Authentication - Mapping to your manual secret
+auth:
+  enabled: true
+  existingSecret: "gitlab-db-postgresql-secret"
+  secretKeys:
+    adminPasswordKey: "postgres-password"
+    userPasswordKey: "password"
+
+  # The 'postgres' admin password
+  postgresPassword: "My-p0stGr3sql_P4ss_admin"
+  # The application user details
+  username: "gitlab"
+  password: "My-p0stGr3sql_P4ss_user"
+  database: "gitlabhq_production"
+
+## Primary Pod Configuration
+primary:
+  # Pin the pod specifically to your build/master node
+  nodeSelector:
+    workload: "build-jobs"
+
+  # Persistence using the node's local disk
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+
+  # Security Context (Standard for Bitnami images)
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+
+## Resource constraints to protect your master node's CPU/RAM
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+

@@ -1,0 +1,219 @@
+# ── CONFIGMAP FOR SERVERS.JSON ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgadmin-config
+  namespace: ml-build
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "PostgreSQL Cluster",
+          "Group": "Kubernetes",
+          "Host": "gitlab-db-posgresql-postgresql.ml-build.svc.cluster.local",
+          "Port": 5432,
+          "MaintenanceDB": "postgres",
+          "Username": "postgres",
+          "SSLMode": "prefer",
+          "PassFile": "/tmp/pgpassfile"
+        }
+      }
+    }
+
+---
+#── SECRET FOR PGADMIN CREDENTIALS ────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgadmin-secret
+  namespace: ml-build
+type: Opaque
+stringData:
+  # pgAdmin login credentials
+  PGADMIN_DEFAULT_EMAIL: "ntiamoah376@yahoo.com"  # Change this!
+  PGADMIN_DEFAULT_PASSWORD: "My-p0stGr3sql_P4ss_admin"  # Change this!
+  
+  # PostgreSQL password file for auto-login
+  pgpassfile: |
+    gitlab-db-posgresql-postgresql.ml-build.svc.cluster.local:5432:*:postgres:My-p0stGr3sql_P4ss_admin
+
+---
+# ── PERSISTENT VOLUME CLAIM ────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgadmin-pvc
+  namespace: ml-build
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: "local-path"  # Change this to your cluster's actual storage class
+
+---
+# ── DEPLOYMENT ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin
+  namespace: ml-build
+  labels:
+    app: pgadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgadmin
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 5050
+        fsGroup: 5050
+        seccompProfile:
+          type: RuntimeDefault
+      
+      containers:
+        - name: pgadmin
+          image: dpage/pgadmin4:latest
+          imagePullPolicy: IfNotPresent
+          
+          securityContext:
+            allowPrivilegeEscalation: true
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+          
+          env:
+            - name: PGADMIN_LISTEN_PORT
+              value: "8081"
+            - name: PGADMIN_DEFAULT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: pgadmin-secret
+                  key: PGADMIN_DEFAULT_EMAIL
+
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pgadmin-secret
+                  key: PGADMIN_DEFAULT_PASSWORD
+            
+            - name: PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION
+              value: "True"
+            
+            - name: PGADMIN_CONFIG_SERVER_MODE
+              value: "True"
+            
+            - name: PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED
+              value: "False"
+          
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          
+          volumeMounts:
+            - name: pgadmin-data
+              mountPath: /var/lib/pgadmin
+            
+            - name: pgadmin-config
+              mountPath: /pgadmin4/servers.json
+              subPath: servers.json
+              readOnly: true
+            
+            - name: pgadmin-secret
+              mountPath: /tmp/pgpassfile
+              subPath: pgpassfile
+              readOnly: true
+          
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          
+          livenessProbe:
+            httpGet:
+              path: /misc/ping
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /misc/ping
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      
+      volumes:
+        - name: pgadmin-data
+          persistentVolumeClaim:
+            claimName: pgadmin-pvc
+        
+        - name: pgadmin-config
+          configMap:
+            name: pgadmin-config
+        
+        - name: pgadmin-secret
+          secret:
+            secretName: pgadmin-secret
+            defaultMode: 0600
+
+---
+# ── SERVICE ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  namespace: ml-build
+  labels:
+    app: pgadmin
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: http
+  selector:
+    app: pgadmin
+
+
+# ___________________routes ______________________________________________________________________________________
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pgadmin-ui-route
+  namespace: ml-build # Hubble lives in kube-system
+spec:
+  parentRefs:
+    - name: cilium-ingress-gateway
+      namespace: ml-infrastructure
+      sectionName: default-http # Using the general listener for simplicity
+  hostnames:
+    - "pgadmin.mlsecops.local"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: pgadmin
+      port: 8081
+
+    #______________________________________________ END OF pgAdmin DEPLOYMENT _____________________________________________
