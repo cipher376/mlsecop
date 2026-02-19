@@ -1,0 +1,47 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-infra-gateway-to-ml-security
+  namespace: ml-security
+spec:
+  from: # Who is allowed to look in here?
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: infrastructure
+  to: # What are they allowed to see?
+  - group: ""
+    kind: Service
+    name: vault
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-infra-gateway-to-ml-build
+  namespace: ml-build
+spec:
+  from: # Who is allowed to look in here?
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: infrastructure
+  to: # What are they allowed to see?
+  - group: ""
+    kind: Service
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-infra-gateway-to-hubble
+  namespace: kube-system # Lives where Hubble is
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: ml-infrastructure
+  to:
+  - group: ""
+    kind: Service
+    name: hubble-ui

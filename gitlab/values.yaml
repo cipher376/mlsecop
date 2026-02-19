@@ -1,0 +1,83 @@
+global:
+  hosts:
+    domain: mlsecops.local        # Replace with your domain
+    https: false
+  ingress:
+    class: cilium # CRITICAL: Tells GitLab to use Cilium's Envoy-based ingress
+    configureCertmanager: false
+    tls:
+      enabled: false
+  psql:
+    install: false
+    host: gitlab-db-postgresql.ml-build.svc.cluster.local
+    password:
+      secret: gitlab-db-postgresql-secret # Secret created by the standalone chart
+      key: password
+  redis:
+    install: false
+    host: gitlab-redis-master.ml-build.svc.cluster.local
+    auth:
+      enabled: true
+      secret: gitlab-redis-secret
+      key: redis-password
+  monitoring:
+    prometheus:
+      install: false
+      host: prometheus-operated.ml-monitoring.svc.cluster.local
+      port: 9090
+
+  appConfig:
+    object_storage:
+      enabled: true
+      connection:
+        secret: gitlab-seaweedfs-db-secret
+        key: connection
+    # Map specific services to use the unified object storage
+    lfs:
+      enabled: true
+      bucket: gitlab-lfs
+    artifacts:
+      enabled: true
+      bucket: gitlab-artifacts
+    uploads:
+      enabled: true
+      bucket: gitlab-uploads
+    packages:
+      enabled: true
+      bucket: gitlab-packages
+    externalDiffs:
+      enabled: true
+      bucket: gitlab-external-diffs
+    terraformState:
+      enabled: true
+      bucket: gitlab-terraform-state
+    dependencyProxy:
+      enabled: true
+      bucket: gitlab-dependency-proxy
+
+gitlab:
+  webservice:
+    replicaCount: 2
+    nodeSelector:
+      workload: build-jobs
+  sidekiq:
+    replicaCount: 1
+    nodeSelector:
+      workload: build-jobs
+  gitaly:
+    persistence:
+      size: 50Gi
+
+postgresql:
+  install: false
+redis:
+  install: false
+minio:
+  install: false
+prometheus:
+  install: false
+# Disable GitLab Runner in the chart (we'll configure it separately)
+gitlab-runner:
+  install: false
+nginx-ingress:
+  enabled: false # We use Cilium instead

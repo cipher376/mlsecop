@@ -1,0 +1,42 @@
+# Cilium 1.18.5 Configuration
+# Usage: helm upgrade --install cilium cilium/cilium -n kube-system -f cilium-values.yaml
+
+# 1. Connectivity & Control Plane
+k8sServiceHost: "192.168.32.128"
+k8sServicePort: 6443
+kubeProxyReplacement: true
+devices: "ens33"
+
+# 2. Hubble Observability
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+# 3. L2 Announcements & Load Balancing
+l2announcements:
+  enabled: true
+
+loadBalancer:
+  l2announcements:
+    enabled: true
+
+externalIPs:
+  enabled: true
+
+# 4. Gateway API & Ingress (Hardened)
+gatewayAPI:
+  enabled: true
+  # Prevents automatic external exposure of every Gateway
+  createDefaultGatewayClass: false
+
+ingressController:
+  enabled: false
+  default: false
+
+# 5. DNS Proxy Settings
+standaloneDnsProxy:
+  enabled: false
+
