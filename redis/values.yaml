@@ -1,0 +1,85 @@
+global:
+  security:
+    allowInsecureImages: false 
+
+architecture: standalone # Use 'replication' for a Master/Slave setup
+resourcesPreset: "none"
+
+auth:
+  enabled: true
+  existingSecret: "gitlab-redis-secret"
+  existingSecretPasswordKey: "redis-password"
+
+master:
+  repository: ""
+  image:
+    name: "localhost/redis"
+  tag: "local"
+  pullPolicy: Never
+  persistence:
+    enabled: true
+    path: /bitnami/redis/data
+    size: 10Gi
+    storageClass: "local-path" # Defaults to your K3s default (local-path)
+  configmap: |
+    # 1. RDB Snapshoting (save if X keys change in Y seconds)
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # 2. Enable AOF (Append Only File)
+    appendonly yes
+    appendfilename "appendonly.aof"
+    
+    # 3. AOF Sync Strategy (Every second is the best balance)
+    appendfsync everysec
+    
+    # 4. Auto-Rewrite (Prevents the AOF file from growing forever)
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+
+# sentinel:
+#   enabled: true
+#   masterSet: gitlab-redis # The name Sentinels use to identify the cluster
+#   quorum: 2
+#   image:
+#     registry: docker.io
+#     repository: bitnami/redis-sentinel
+#     tag: 8.2.2-debian-12-r7 # Match the Redis version for compatibility
+#     pullPolicy: IfNotPresent
+
+configuration: |
+  rename-command FLUSHALL ""
+  rename-command FLUSHDB  ""
+  rename-command CONFIG   ""
+
+
+## Optional: Enable metrics for Prometheus/Grafana monitoring
+metrics:
+  enabled: true
+  repository: ""
+  image: 
+    name: "localhost/redis-exporter"
+  tag: "local"
+  pullPolicy: Never
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"

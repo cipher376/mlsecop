@@ -1,0 +1,97 @@
+# Global image settings
+
+global:
+ registry: ""
+ image:
+    name: "localhost/seaweedfs"
+    tag: "local"
+    pullPolicy: "Never"
+
+# Core Components
+master:
+  enabled: true
+  port: 9333
+  grpcPort: 19333
+  metricsPort: 9324
+  service:
+    type: ClusterIP # Strict internal access only
+  replicas: 1
+  data:
+    type: "persistentVolumeClaim"
+    size: 5Gi
+    storageClass: "local-path"
+  logs:
+    type: "persistentVolumeClaim"
+    size: 1Gi
+    storageClass: "local-path"
+  nodeSelector: |
+    workload: build-jobs
+
+volume:
+  enabled: true
+  port: 8181
+  grpcPort: 18080
+  metricsPort: 9325
+  service:
+    type: ClusterIP
+    port: 8181
+  replicas: 1
+  dataDirs:
+    - name: "data1"
+      type: "persistentVolumeClaim"
+      size: 40Gi
+      storageClass: "local-path"
+  logs:
+    type: "persistentVolumeClaim"
+    size: 1Gi
+    storageClass: "local-path"
+  nodeSelector: |
+    workload: build-jobs
+
+filer:
+  enabled: true
+  replicas: 1
+  port: 8888
+  grpcPort: 18888
+  metricsPort: 9327
+  data:
+    type: "persistentVolumeClaim"
+    size: "10Gi"
+    storageClass: "local-path"
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  logs:
+    type: "persistentVolumeClaim"
+    size: 1Gi
+    storageClass: "local-path"
+
+
+s3:
+  enabled: true # THIS IS THE CRITICAL PART FOR GITLAB
+  port: 8333
+  service:
+    type: ClusterIP
+    port: 8333
+  # Default credentials for your first login
+  accessKey: admin
+  secretKey: mlsecops-seaweed-pass
+  nodeSelector: |
+  workload: build-jobs
+  logs:
+    type: "persistentVolumeClaim"
+    size: 1Gi
+    storageClass: "local-path"
+
+
+# Disable unnecessary extras to save RAM
+# metrics:
+#   enabled: false
+
+ingress:
+  enabled: false

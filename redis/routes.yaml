@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: redis-ui-route
+  namespace: ml-build
+spec:
+  parentRefs:
+  - name: cilium-ingress-gateway
+    namespace: ml-infrastructure
+    sectionName: default-http
+  hostnames:
+  - "redis.mlsecops.local"
+  rules:
+  - matches:
+        - path:
+            type: PathPrefix
+            value: /
+  - backendRefs:
+    - name: gitlab-redis-insight
+      port: 5540

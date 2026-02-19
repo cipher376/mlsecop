@@ -1,0 +1,115 @@
+# ── SERVICE ACCOUNT ────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-redis-insight
+  namespace: ml-build
+
+---
+# ── PERSISTENT VOLUME CLAIM ────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitlab-redis-insight-pvc
+  namespace: ml-build
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: "local-path"
+
+---
+# ── DEPLOYMENT ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-redis-insight
+  namespace: ml-build
+  labels:
+    app: redisinsight
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redisinsight
+  template:
+    metadata:
+      labels:
+        app: redisinsight
+    spec:
+      serviceAccountName: gitlab-redis-insight
+      
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      containers:
+        - name: gitlab-redis-insight
+          image: redis/redisinsight:latest
+          imagePullPolicy: IfNotPresent
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: false  # Required for RedisInsight's internal DB
+          
+          ports:
+            - name: http
+              containerPort: 5540
+              protocol: TCP
+          
+          volumeMounts:
+            - name: gitlab-redis-insight-data
+              mountPath: /data
+          
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5540
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 5540
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      
+      volumes:
+        - name: gitlab-redis-insight-data
+          persistentVolumeClaim:
+            claimName: gitlab-redis-insight-pvc
+
+---
+# ── SERVICE ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-redis-insight
+  namespace: ml-build
+  labels:
+    app: redisinsight
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5540
+      targetPort: 5540
+      protocol: TCP
+      name: http
+  selector:
+    app: redisinsight

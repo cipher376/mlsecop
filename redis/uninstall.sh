@@ -1,0 +1,1 @@
+helm uninstall gitlab-redis -n ml-build
