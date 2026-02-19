@@ -1,0 +1,116 @@
+global:
+  enabled: true
+  tlsDisable: true
+  nameOverride: "vault"    
+  namespaceOverride: "ml-security"
+
+ui:
+  enabled: true
+  service:
+    type: ClusterIP # Strict internal access only
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+
+server:
+  service:
+    type: ClusterIP # Strict internal access only
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+  
+  # Run as non-root
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    readOnlyRootFilesystem: true
+    seccompProfile:
+      type: RuntimeDefault
+
+# Resources
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+
+ # Readiness/Liveness probes
+  readinessProbe:
+    enabled: true
+    path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+
+  livenessProbe:
+    enabled: true
+    path: /v1/sys/health?standbyok=true
+    initialDelaySeconds: 60
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: vault
+
+  # # # Persistent storage for Raft data
+  # dataStorage:
+  #   enabled: true
+  #   size: 10Gi
+  #   storageClass: "standard"  # Replace with your StorageClass
+  #   accessMode: ReadWriteOnce
+
+  # # # Audit storage
+  # auditStorage:
+  #   enabled: true
+  #   size: 5Gi
+  #   storageClass: "standard"  # Replace with your StorageClass
+  #   accessMode: ReadWriteOnce
+
+  affinity: |
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: tier
+                operator: In
+                values:
+                  - vault-protected
+
+  nodeSelector:
+    tier: vault-protected
+
+  tolerations:
+    - key: "tier"
+      operator: "Equal"
+      value: "vault-protected"
+      effect: "NoSchedule"
+
+
+injector:
+  enabled: true
+  namespace: ml-security
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 50m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    readOnlyRootFilesystem: true
+    seccompProfile:
+      type: RuntimeDefault
