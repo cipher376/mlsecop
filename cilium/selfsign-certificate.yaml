@@ -1,0 +1,32 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: gitlab-selfsigned-issuer
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-tls-cert
+  namespace: ml-security
+spec:
+  usages:
+    - digital signature
+    - cert sign
+    - crl sign # Crucial for browsers to trust it as a CA
+    - server auth
+  isCA: true  # This tells Ubuntu "I am a Certificate Authority"
+  commonName: "MLSecOps-SelfSigned-CA" # <--- THIS FIXES THE ERROR
+  subject:
+    organizations:
+      - "MLSecOps"
+  dnsNames:
+    - "mlsecops.local"
+    - "gitlab.mlsecops.local"
+    - "pgadmin.mlsecops.local"
+  secretName: gitlab-tls-cert
+  issuerRef:
+    name: gitlab-selfsigned-issuer
+    kind: ClusterIssuer

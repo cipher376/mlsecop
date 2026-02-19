@@ -1,3 +1,4 @@
-helm repo add bitnami https://charts.bitnami.com/bitnami
+#helm repo add bitnami https://charts.bitnami.com/bitnami
 
-helm install gitlab-db-posgresql bitnami/postgresql -n ml-build  -f ~/mlsecop/postgresql/values.yaml
+helm upgrade --install gitlab-db-postgresql bitnami/postgresql -n ml-build  -f ~/mlsecop/postgresql/values.yaml
+# helm upgrade gitlab-db-postgresql bitnami/postgresql -n ml-build  -f ~/mlsecop/postgresql/values.yaml

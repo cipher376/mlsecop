@@ -6,5 +6,5 @@
 # helm repo update
 
 # 2. Install SeaweedFS
-helm install seaweedfs seaweedfs/seaweedfs -n ml-build \
+helm upgrade --install seaweedfs seaweedfs/seaweedfs -n ml-build \
 -f ~/mlsecop/seaweedfs/values.yaml

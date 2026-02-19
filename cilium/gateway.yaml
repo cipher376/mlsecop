@@ -4,6 +4,8 @@ kind: Gateway
 metadata:
   name: cilium-ingress-gateway
   namespace: ml-infrastructure
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" # <--- The Magic Hook
 spec:
   gatewayClassName: gateway-controller
   listeners:
@@ -15,4 +17,15 @@ spec:
     allowedRoutes:
       namespaces:
         from: All # Allow routes from any namespace (we'll control access with ReferenceGrants)s
-
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: "gitlab.mlsecops.local"
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: gitlab-tls-cert # cert-manager will automatically create this secret
+        namespace: ml-security
+    allowedRoutes:
+      namespaces:
+        from: All

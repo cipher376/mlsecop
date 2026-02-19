@@ -1,0 +1,1 @@
+kubectl apply -f ~/mlsecop/postgresql/pgadmin.yaml -n ml-build

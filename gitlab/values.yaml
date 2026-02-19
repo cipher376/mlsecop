@@ -1,38 +1,53 @@
 global:
   hosts:
-    domain: mlsecops.local        # Replace with your domain
-    https: false
+    domain: mlsecops.local
+    https: true # Note: If false, GitLab will use http:// internal links
+  
+  minio:
+    enabled: false
+
   ingress:
-    class: cilium # CRITICAL: Tells GitLab to use Cilium's Envoy-based ingress
-    configureCertmanager: false
+    class: cilium 
+    configureCertmanager: false # You are managing cert-manager separately
     tls:
-      enabled: false
+      enabled: true
+      secretName: gitlab-tls-cert # <--- This satisfies the requirement
+
+  # ── EXTERNAL DATABASE ──────────────────────────────────────────────
   psql:
-    install: false
+    # 'install: false' does NOT go here; it goes at the root level
     host: gitlab-db-postgresql.ml-build.svc.cluster.local
+    port: 5432
+    username: gitlab      # Ensure this matches the 'ALTER ROLE' name
+    database: gitlabhq_production
     password:
-      secret: gitlab-db-postgresql-secret # Secret created by the standalone chart
+      secret: gitlab-db-postgresql-secret
       key: password
+
+  # ── EXTERNAL REDIS ─────────────────────────────────────────────────
   redis:
-    install: false
     host: gitlab-redis-master.ml-build.svc.cluster.local
     auth:
       enabled: true
       secret: gitlab-redis-secret
       key: redis-password
+
+  # ── MONITORING ─────────────────────────────────────────────────────
   monitoring:
     prometheus:
       install: false
       host: prometheus-operated.ml-monitoring.svc.cluster.local
       port: 9090
 
+  # ── CONSOLIDATED OBJECT STORAGE (SeaweedFS) ────────────────────────
   appConfig:
-    object_storage:
+    object_store:
       enabled: true
       connection:
         secret: gitlab-seaweedfs-db-secret
         key: connection
-    # Map specific services to use the unified object storage
+    
+    # These settings tell GitLab which buckets to use in SeaweedFS
     lfs:
       enabled: true
       bucket: gitlab-lfs
@@ -55,29 +70,64 @@ global:
       enabled: true
       bucket: gitlab-dependency-proxy
 
+# ── TOP-LEVEL SUBCHART DISABLES ───────────────────────────────────────
+# This is where 'install: false' belongs
+postgresql:
+  install: false
+
+redis:
+  install: false
+
+minio:
+  install: false
+
+prometheus:
+  install: false
+
+gitlab-runner:
+  install: false
+
+nginx-ingress:
+  enabled: false
+
+installCertmanager: false # Move it to the root level, not under a 'certmanager' block
+# ── COMPONENT SPECIFIC OVERRIDES ──────────────────────────────────────
 gitlab:
   webservice:
     replicaCount: 2
-    nodeSelector:
-      workload: build-jobs
+    resources:
+      requests:
+        ephemeral-storage: "2Gi"
+      limits:
+        ephemeral-storage: "4Gi"
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
   sidekiq:
     replicaCount: 1
-    nodeSelector:
-      workload: build-jobs
+    resources:
+      requests:
+        ephemeral-storage: "2Gi"
+      limits:
+        ephemeral-storage: "4Gi"
   gitaly:
     persistence:
       size: 50Gi
-
-postgresql:
-  install: false
-redis:
-  install: false
-minio:
-  install: false
-prometheus:
-  install: false
-# Disable GitLab Runner in the chart (we'll configure it separately)
-gitlab-runner:
-  install: false
-nginx-ingress:
-  enabled: false # We use Cilium instead
+  migrations: # Help migrations run successfully by giving them more resources
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+  
+  # CRITICAL: Point the Registry to SeaweedFS as well
+  registry:
+    enabled: true
+    storage:
+      secret: gitlab-seaweedfs-db-secret
+      key: connection

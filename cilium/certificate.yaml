@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitlab-tls-cert
+  namespace: ml-security
+spec:
+  secretName: gitlab-tls-cert
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: gitlab.mlsecops.local
+  dnsNames:
+  - gitlab.mlsecops.local

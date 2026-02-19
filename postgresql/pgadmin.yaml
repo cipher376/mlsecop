@@ -11,7 +11,7 @@ data:
         "1": {
           "Name": "PostgreSQL Cluster",
           "Group": "Kubernetes",
-          "Host": "gitlab-db-posgresql-postgresql.ml-build.svc.cluster.local",
+          "Host": "gitlab-db-postgresql.ml-build.svc.cluster.local",
           "Port": 5432,
           "MaintenanceDB": "postgres",
           "Username": "postgres",
@@ -36,7 +36,7 @@ stringData:
   
   # PostgreSQL password file for auto-login
   pgpassfile: |
-    gitlab-db-posgresql-postgresql.ml-build.svc.cluster.local:5432:*:postgres:My-p0stGr3sql_P4ss_admin
+    gitlab-db-postgresql.ml-build.svc.cluster.local:5432:*:postgres:My-p0stGr3sql_P4ss_admin
 
 ---
 # ── PERSISTENT VOLUME CLAIM ────────────────────────────────────────────
@@ -135,7 +135,7 @@ spec:
           
           resources:
             requests:
-              memory: 256Mi
+              memory: 128Mi
               cpu: 100m
             limits:
               memory: 512Mi
@@ -192,7 +192,7 @@ spec:
   selector:
     app: pgadmin
 
-
+---
 # ___________________routes ______________________________________________________________________________________
 
 apiVersion: gateway.networking.k8s.io/v1
@@ -204,7 +204,7 @@ spec:
   parentRefs:
     - name: cilium-ingress-gateway
       namespace: ml-infrastructure
-      sectionName: default-http # Using the general listener for simplicity
+      sectionName: https # Using the general listener for simplicity
   hostnames:
     - "pgadmin.mlsecops.local"
   rules:

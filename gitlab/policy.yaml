@@ -1,14 +1,59 @@
-apiVersion: "cilium.io/v2"
-kind: CiliumNetworkPolicy
+# apiVersion: "cilium.io/v2"
+# kind: CiliumNetworkPolicy
+# metadata:
+#   name: "allow-ml-to-registry"
+#   namespace: ml-production
+# spec:
+#   endpointSelector:
+#     matchLabels:
+#       workload: ml-production
+#   egress:
+#     - toEndpoints:
+#         - matchLabels:
+#             "k8s:io.kubernetes.pod.namespace": ml-build
+#             "k8s:app": registry
+
+#---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
 metadata:
-  name: "allow-ml-to-registry"
-  namespace: ml-production
+  name: gitlab-to-postgress-allow
+  namespace: ml-build
 spec:
-  endpointSelector:
+  podSelector:
     matchLabels:
-      workload: ml-production
-  egress:
-    - toEndpoints:
-        - matchLabels:
-            "k8s:io.kubernetes.pod.namespace": ml-build
-            "k8s:app": registry
+      app.kubernetes.io/name: postgresql
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              # This targets the GitLab webservice and sidekiq pods
+              app: webservice
+        - podSelector:
+            matchLabels:
+              app: sidekiq
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gitlab-to-redis-allow
+  namespace: ml-build
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              # This targets the GitLab webservice and sidekiq pods
+              app: webservice
+        - podSelector:
+            matchLabels:
+              app: sidekiq
+      ports:
+        - protocol: TCP
+          port: 5432

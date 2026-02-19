@@ -24,6 +24,7 @@ auth:
 
 ## Primary Pod Configuration
 primary:
+  resourcesPreset: "none"
   # Pin the pod specifically to your build/master node
   nodeSelector:
     workload: "build-jobs"
@@ -43,13 +44,23 @@ primary:
   podSecurityContext:
     enabled: true
     fsGroup: 1001
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1.5Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+resourcesPreset: "none"
 
 ## Resource constraints to protect your master node's CPU/RAM
 resources:
   limits:
     cpu: 1000m
-    memory: 1Gi
+    memory: 2Gi
   requests:
     cpu: 250m
-    memory: 512Mi
+    memory: 1Gi
 

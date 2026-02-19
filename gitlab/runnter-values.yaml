@@ -1,0 +1,33 @@
+# The URL of your GitLab instance
+gitlabUrl: http://gitlab.ml-build.svc.cluster.local/
+
+# The registration token from GitLab (Menu -> Admin -> CI/CD -> Runners)
+runnerRegistrationToken: "YOUR_RUNNER_TOKEN"
+
+# Use a separate namespace for the build pods themselves
+namespace: gitlab-runner
+
+rbac:
+  create: true
+
+runners:
+  config: |
+    [[runners]]
+      [runners.kubernetes]
+        namespace = "gitlab-runner"
+        image = "ubuntu:22.04"
+        # Since you use workload labels, tell the runner to spawn jobs on specific nodes
+        [runners.kubernetes.node_selector]
+          workload = "build-jobs"
+        
+        # Cache configuration for SeaweedFS
+        [runners.cache]
+          Type = "s3"
+          Path = "runner-cache"
+          Shared = true
+          [runners.cache.s3]
+            ServerAddress = "seaweedfs-s3.ml-build.svc.cluster.local:8333"
+            AccessKey = "connection" # This should match the secret key in your GitLab values.yaml
+            SecretKey = "gitlab-seaweedfs-db-secret" # This should match the secret key in your GitLab values.yaml
+            BucketName = "gitlab-runner-cache"
+            Insecure = true # Set to false if using HTTPS/TLS
