@@ -8,7 +8,7 @@ spec:
   parentRefs:
     - name: cilium-ingress-gateway
       namespace: ml-infrastructure
-      sectionName: 
+      sectionName: https
   hostnames:
     - "seaweed-master.mlsecops.local"
   rules:
@@ -31,7 +31,7 @@ spec:
   parentRefs:
     - name: cilium-ingress-gateway
       namespace: ml-infrastructure
-      sectionName: default-http
+      sectionName: https
   hostnames:
     - "seaweed-filer.mlsecops.local"
   rules:
@@ -54,7 +54,7 @@ spec:
   parentRefs:
     - name: cilium-ingress-gateway
       namespace: ml-infrastructure
-      sectionName: default-http
+      sectionName: https
   hostnames:
     - "seaweed-s3.mlsecops.local"
   rules:

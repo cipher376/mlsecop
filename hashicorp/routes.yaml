@@ -9,7 +9,7 @@ spec:
   parentRefs:
   - name: cilium-ingress-gateway
     namespace: ml-infrastructure # Points to the central namespace
-    sectionName: default-http # Using the general listener for simplicity
+    sectionName: https # Using the general listener for simplicity
   hostnames:
   - "vault.mlsecops.local"
   rules:
@@ -56,7 +56,7 @@ spec:
   parentRefs:
   - name: cilium-ingress-gateway
     namespace: ml-infrastructure # Points to the central namespace
-    sectionName: default-http # Using the general listener for simplicity
+    sectionName: https # Using the general listener for simplicity
   hostnames:
   - "vault-ui.mlsecops.local"
   rules:

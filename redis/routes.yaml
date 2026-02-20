@@ -7,7 +7,7 @@ spec:
   parentRefs:
   - name: cilium-ingress-gateway
     namespace: ml-infrastructure
-    sectionName: default-http
+    sectionName: https
   hostnames:
   - "redis.mlsecops.local"
   rules:

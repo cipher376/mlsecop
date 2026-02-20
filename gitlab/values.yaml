@@ -2,16 +2,18 @@ global:
   hosts:
     domain: mlsecops.local
     https: true # Note: If false, GitLab will use http:// internal links
-  
+
+  appConfig:
+    # This tells GitLab to trust the headers coming from Cilium
+    external_url: https://gitlab.mlsecops.local
+
   minio:
     enabled: false
+    ingress:
+      enabled: false
 
   ingress:
-    class: cilium 
-    configureCertmanager: false # You are managing cert-manager separately
-    tls:
-      enabled: true
-      secretName: gitlab-tls-cert # <--- This satisfies the requirement
+    enabled: false # We will manage ingress separately with HTTPRoute
 
   # ── EXTERNAL DATABASE ──────────────────────────────────────────────
   psql:
@@ -90,11 +92,43 @@ gitlab-runner:
 nginx-ingress:
   enabled: false
 
+pages:
+  enabled: true
+  # This is usually a separate domain from your main GitLab instance
+  host: pages.mlsecops.local
+
+certmanager-issuer:
+  email: dummynerd@mlsecops.local  # Replace with your actual email
+
 installCertmanager: false # Move it to the root level, not under a 'certmanager' block
+
 # ── COMPONENT SPECIFIC OVERRIDES ──────────────────────────────────────
 gitlab:
+  name: gitlab.mlsecops.local
+  https: true
   webservice:
     replicaCount: 2
+    ingress:
+      enabled: false # We will manage ingress separately with HTTPRoute
+    
+    extraEnv:
+      GITLAB_HTTPS: "true"
+      GITLAB_HOST: "gitlab.mlsecops.local"
+      GITLAB_PORT: "443"
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://gitlab.mlsecops.local'
+        nginx['listen_https'] = false
+        nginx['listen_port'] = 8080
+        
+        # Trust proxy headers
+        #nginx['real_ip_trusted_addresses'] = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+        #nginx['real_ip_header'] = 'X-Real-IP'
+        #nginx['real_ip_recursive'] = 'on'
+        
+        # HTTPS settings
+        gitlab_rails['gitlab_https'] = true
+        gitlab_workhorse['listen_network'] = "tcp"
+        gitlab_workhorse['listen_addr'] = "0.0.0.0:8181"
     resources:
       requests:
         ephemeral-storage: "2Gi"
@@ -128,6 +162,19 @@ gitlab:
   # CRITICAL: Point the Registry to SeaweedFS as well
   registry:
     enabled: true
+    ingress:
+      enabled: false
     storage:
       secret: gitlab-seaweedfs-db-secret
       key: connection
+  
+  gitlab-shell:
+    ingress:
+      enabled: false
+
+  gitlab-pages:
+    enabled: true
+
+registry:
+  ingress:
+    enabled: false

@@ -20,12 +20,13 @@ spec:
   - name: https
     protocol: HTTPS
     port: 443
-    hostname: "gitlab.mlsecops.local"
+    hostname: "*.mlsecops.local"
     tls:
       mode: Terminate
       certificateRefs:
       - name: gitlab-tls-cert # cert-manager will automatically create this secret
         namespace: ml-security
+        kind: Secret
     allowedRoutes:
       namespaces:
         from: All
